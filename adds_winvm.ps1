@@ -1,7 +1,7 @@
 # Change the following values to match your deployment.
-$AaddsAdminUserUpn = "sangaml@projectride.ml"
+$AaddsAdminUserUpn = "sangaml@sangamlonkar14.cf"
 $AzureSubscriptionId = "8c879d4b-1e31-438b-8f74-41093d5c4b83"
-$ManagedDomainName = "projectride.ml"
+$ManagedDomainName = "sangamlonkar14.cf"
 $ResourceGroupName = "AaddsRg1"
 $VnetName = "DomainServicesVNet_WUS"
 $location = "westus"
@@ -60,7 +60,7 @@ New-AzureRmResource -ResourceId "/subscriptions/$AzureSubscriptionId/resourceGro
     "SubnetId"="/subscriptions/$AzureSubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Network/virtualNetworks/$VnetName/subnets/DomainServices"} `
   -ApiVersion 2017-06-01 -Force -Verbose
 
-############3
+##############Windows VM ####################
 # Create variables to store the storage account name and the storage account SKU information
 $random1 = (New-Guid).ToString().Substring(0,8)
 $StorageAccountName = "mystorageaccount$random1"
@@ -164,13 +164,13 @@ New-AzureRmVM `
 
   #insatll Custom ScriptExtension
 
-<#Set-AzureRmVMCustomScriptExtension -ResourceGroupName myResourceGroup `
+#Set-AzureRmVMCustomScriptExtension -ResourceGroupName myResourceGroup `
     -VMName $VmName `
     -Location $location `
     -FileUri "D:\dev\scripts" `
-    -Run 'joinad.ps1' `
+    -Run 'joinadds.ps1' `
     -Name ADScriptExtension
-    #>     
+    #    
 ########Linux VM ################################3
 
 # Create variables to store the storage account name and the storage account SKU information
