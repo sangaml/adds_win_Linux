@@ -1,6 +1,6 @@
 # Change the following values to match your deployment.
 $AaddsAdminUserUpn = "sangaml@sangamlonkar14.cf"
-$AzureSubscriptionId = "8c879d4b-1e31-438b-8f74-41093d5c4b83"
+$AzureSubscriptionId = "SubscriptionID"
 $ManagedDomainName = "sangamlonkar14.cf"
 $ResourceGroupName = "AaddsRg1"
 $VnetName = "DomainServicesVNet_WUS"
@@ -13,7 +13,7 @@ $location = "westus"
 #Connect-AzureRmAccount
 
 # Create the service principal for Azure AD Domain Services.
-#New-AzurermADServicePrincipal -AppId “54e05464-a580-48eb-8e7b-a50da31cf07a”
+#New-AzurermADServicePrincipal -AppId “AppID”
 New-AzurermADServicePrincipal
 
 # Create the delegated administration group for AAD Domain Services.
