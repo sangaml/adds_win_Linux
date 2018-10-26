@@ -1,16 +1,37 @@
+## Create a resource group
+
+<#
+A resource group is a logical container where you can deploy and manage Azure Stack resources. From your development kit or the Azure Stack integrated system, run the following code block to create a resource group. Values are assigned for all the variables in this document, you can use these values or assign new values.
+#>
+
+# Edit your variables here if required
+
 # Create variables to store the location and resource group names.
 $location = "centralus"
-$ResourceGroupName = "myResourceGroup"
+$ResourceGroupName = "myResourceGroup7"
 
+# Create variables to store the storage account name and the storage account SKU information
+$StorageAccountName = "mystorageaccount987609"
+$SkuName = "Standard_LRS"
+
+# Create variables to store the network security group and rules names.
+$nsgName = "myNetworkSecurityGroup"
+$nsgRuleSSHName = "myNetworkSecurityGroupRuleSSH"
+$nsgRuleWebName = "myNetworkSecurityGroupRuleWeb"
+
+# Create variable for virtual machine password
+$VMPassword = 'Password123!'
+
+# End of Variables - no need to edit anything past that point to deploy a single VM
+
+# Create Resource Group
 New-AzureRmResourceGroup `
   -Name $ResourceGroupName `
   -Location $location
 
-  # Create storage resources
-# Create variables to store the storage account name and the storage account SKU information
-$random = (New-Guid).ToString().Substring(0,8)
-$StorageAccountName = "mystorageaccount$random"
-$SkuName = "Standard_LRS"
+## Create storage resources
+
+# Create a storage account and then create a storage container for the Ubuntu Server 16.04 LTS image.
 
 # Create a new storage account
 $StorageAccount = New-AzureRMStorageAccount `
@@ -29,17 +50,21 @@ $container = New-AzureStorageContainer `
   -Name $containerName `
   -Permission Blob
 
-  #Create networking resources
+
+## Create networking resources
+
+# Create a virtual network, subnet, and a public IP address. These resources are used to provide network connectivity to the virtual machine.
+
 # Create a subnet configuration
 $subnetConfig = New-AzureRmVirtualNetworkSubnetConfig `
-  -Name mySubnet$random `
+  -Name mySubnet `
   -AddressPrefix 192.168.1.0/24
 
 # Create a virtual network
 $vnet = New-AzureRmVirtualNetwork `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
-  -Name MyVnet$random `
+  -Name MyVnet `
   -AddressPrefix 192.168.0.0/16 `
   -Subnet $subnetConfig
 
@@ -51,39 +76,31 @@ $pip = New-AzureRmPublicIpAddress `
   -IdleTimeoutInMinutes 4 `
   -Name "mypublicdns$(Get-Random)"
 
-#Create a network security group and a network security group rule
-# Create an inbound network security group rule for port 3389
-$nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig `
-  -Name myNetworkSecurityGroupRuleRDP `
-  -Protocol Tcp `
-  -Direction Inbound `
-  -Priority 1000 `
-  -SourceAddressPrefix * `
-  -SourcePortRange * `
-  -DestinationAddressPrefix * `
-  -DestinationPortRange 3389 `
-  -Access Allow
+
+### Create a network security group and a network security group rule
+
+<#
+The network security group secures the virtual machine by using inbound and outbound rules. Create an inbound rule for port 3389 to allow incoming Remote Desktop connections and an inbound rule for port 80 to allow incoming web traffic.
+#>
+
+# Create an inbound network security group rule for port 22
+$nsgRuleSSH = New-AzureRmNetworkSecurityRuleConfig -Name $nsgRuleSSHName -Protocol Tcp `
+-Direction Inbound -Priority 1000 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * `
+-DestinationPortRange 22 -Access Allow
 
 # Create an inbound network security group rule for port 80
-$nsgRuleWeb = New-AzureRmNetworkSecurityRuleConfig `
-  -Name myNetworkSecurityGroupRuleWWW `
-  -Protocol Tcp `
-  -Direction Inbound `
-  -Priority 1001 `
-  -SourceAddressPrefix * `
-  -SourcePortRange * `
-  -DestinationAddressPrefix * `
-  -DestinationPortRange 80 `
-  -Access Allow
+$nsgRuleWeb = New-AzureRmNetworkSecurityRuleConfig -Name $nsgRuleWebName -Protocol Tcp `
+-Direction Inbound -Priority 1001 -SourceAddressPrefix * -SourcePortRange * -DestinationAddressPrefix * `
+-DestinationPortRange 80 -Access Allow
 
 # Create a network security group
-$nsg = New-AzureRmNetworkSecurityGroup `
-  -ResourceGroupName $ResourceGroupName `
-  -Location $location `
-  -Name myNetworkSecurityGroup `
-  -SecurityRules $nsgRuleRDP,$nsgRuleWeb
+$nsg = New-AzureRmNetworkSecurityGroup -ResourceGroupName $ResourceGroupName -Location $location `
+-Name $nsgName -SecurityRules $nsgRuleSSH,$nsgRuleWeb
 
-  #Create a network card for the virtual machine
+### Create a network card for the virtual machine
+
+# The network card connects the virtual machine to a subnet, network security group, and public IP address.
+
 # Create a virtual network card and associate it with public IP address and NSG
 $nic = New-AzureRmNetworkInterface `
   -Name myNic `
@@ -92,31 +109,35 @@ $nic = New-AzureRmNetworkInterface `
   -SubnetId $vnet.Subnets[0].Id `
   -PublicIpAddressId $pip.Id `
   -NetworkSecurityGroupId $nsg.Id
-#Create a virtual machine
 
-# Define a credential object to store the username and password for the virtual machine
+## Create a virtual machine
+<#
+Create a virtual machine configuration. This configuration includes the settings used when deploying the virtual machine. For example: user credentials, size, and the virtual machine image.
+#>
+
+# Define a credential object.
 $UserName='demouser'
-$Password='Password@123'| ConvertTo-SecureString -Force -AsPlainText
-$Credential=New-Object PSCredential($UserName,$Password)
+$securePassword = ConvertTo-SecureString $VMPassword -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential ($UserName, $securePassword)
 
 # Create the virtual machine configuration object
-$VmName = "LinuxVirtualMachine$random"
-$VmSize = "Standard_A1"
+$VmName = "VirtualMachinelatest"
+$VmSize = "Standard_D1"
 $VirtualMachine = New-AzureRmVMConfig `
   -VMName $VmName `
   -VMSize $VmSize
 
 $VirtualMachine = Set-AzureRmVMOperatingSystem `
   -VM $VirtualMachine `
-  -Windows `
+  -Linux `
   -ComputerName "MainComputer" `
-  -Credential $Credential
+  -Credential $cred
 
 $VirtualMachine = Set-AzureRmVMSourceImage `
   -VM $VirtualMachine `
-  -PublisherName "MicrosoftWindowsServer" `
+  -PublisherName "Canonical" `
   -Offer "UbuntuServer" `
-  -Skus "16.04.2-LTS" `
+  -Skus "16.04-LTS" `
   -Version "latest"
 
 $osDiskName = "OsDisk"
@@ -136,24 +157,5 @@ $VirtualMachine = Set-AzureRmVMOSDisk `
 # Create the virtual machine.
 New-AzureRmVM `
   -ResourceGroupName $ResourceGroupName `
-  -Location $location `
+ -Location $location `
   -VM $VirtualMachine
-
-  #insatll Custom ScriptExtension
-
-Set-AzureRmVMCustomScriptExtension -ResourceGroupName myResourceGroup `
--VMName $VmName `
--Location $location `
--FileUri myURL `
--Run 'Linuxext.ps1' `
--Name ADScriptExtension
-
-
-#install Azure AD Connect
-$ad_msi = https://download.microsoft.com/download/B/0/0/B00291D0-5A83-4DE7-86F5-980BC00DE05A/AzureADConnect.msi
-
-Start-Process $ad_msi /qn
-
-
-$filename = "AzureADConnect.msi"
-$node_msi = "$PSScriptRoot\$filename"
