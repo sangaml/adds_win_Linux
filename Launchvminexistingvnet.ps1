@@ -1,6 +1,8 @@
 #################################################
 #           Launching Win VM                    #
 #################################################
+$ResourceGroupName = "ADDRG"
+$location = "westus"
 
 $Vnet=Get-AzureRmVirtualNetwork `
   -Name "ADDNet" -ResourceGroupName "ADDRG"
