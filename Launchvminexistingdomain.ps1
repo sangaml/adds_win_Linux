@@ -139,8 +139,7 @@ function Add-JDAzureRMVMToDomain {
 
 Write-Host " $winVmName is now connected to $DomainName " -ForegroundColor Green
    
-Write-Host "
------ Added VM to Azure Active directory domain Service -----
+Write-Host "----- Added VM to Azure Active directory domain Service -----" -ForegroundColor Green
 #################################################
 #           Launching Linux VM                  #
 ################################################# " -ForegroundColor Green
