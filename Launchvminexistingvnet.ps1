@@ -239,3 +239,12 @@ New-AzureRmVM `
   -VM $VirtualMachine
 
 Write-Host "----- Launched Linux VM Successfully!!-----" -ForegroundColor Green
+Write-Host "----- Joining VM TO AD DS-----" -ForegroundColor Green
+$TheURI = "https://raw.githubusercontent.com/sangaml/adds_win_Linux/master/joinlinux.sh"
+$Settings = @{"fileUris" = @($TheURI); "commandToExecute" = "./joinlinux.sh"};
+#
+Set-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -Location $location -VMName $VmName `
+-Name "customScript" `
+-Publisher "Microsoft.Azure.Extensions" -Type "customScript" -TypeHandlerVersion "2.0" `
+-Settings $Settings
+Write-Host "----- Joined VM TO AD DS-----" -ForegroundColor Green
