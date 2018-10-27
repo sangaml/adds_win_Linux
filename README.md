@@ -1,4 +1,4 @@
-# Configure Azure Active Directory Domain Service(ADDS) and Azure VMs (Windows and Linux)
+# Configure Azure Active Directory Domain Service(ADDS) and Associate VMs (Windows and Linux) with ADDS.
 
 # prerequisites are :
 1. Azure Account
