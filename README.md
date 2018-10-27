@@ -6,7 +6,7 @@
 
 # Deployment Output :
 
-We have Two scripts 
+We have Two Main scripts 
 1. Launchvminexistingdomain.ps1
 2. azureADDS_integratewith_VMs.ps1
 
@@ -21,5 +21,8 @@ We have Two scripts
   During deployment script will create and configure (ADDS), with 2 VMs (Windows and Linux) and configure Active Directory Domain      Service (users) into that VMs.
   After successful installation we are able to login into VMs by using Azure Active Directory Domain Service users credential.
   
+# Adding Custom Extention for Linux VM, to install Requird packages and configure ADDS 
+  joinlinuxtoadds.sh : This Shell script install requird packages into Linux VM and configure Kerberose and System Security Services Daemon (SSSD).
+
 # Login Process
 After successful installation we are able to login into VMs by using Azure Active Directory Domain Service users credential.
