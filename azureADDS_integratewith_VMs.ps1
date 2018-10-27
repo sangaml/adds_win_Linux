@@ -4,7 +4,7 @@
 #          Created by Sangam                                           #
 ########################################################################
 # Change the following values to match your deployment.
-$AaddsAdminUserUpn = "sangaml@sangamlonkar14.cf"
+$AaddsAdminUserUpn = "pradnesh@sangamlonkar14.cf"
 $AzureSubscriptionId = "8c879d4b-1e31-438b-8f74-41093d5c4b83"
 $ManagedDomainName = "sangamlonkar14.cf"
 $ResourceGroupName = "finalrg"
@@ -14,23 +14,20 @@ $location = "westus"
 ###Add user
 $SecurePassword=ConvertTo-SecureString 'Lkjhg5fdsa@' –asplaintext –force
 
-new-AzureRmADUser -DisplayName "lucky" -UserPrincipalName "lucky@sangamlonkar14.cf" -Password $SecurePassword -MailNickname "lucky"
+new-AzureRmADUser -DisplayName "pradnesh" -UserPrincipalName "pradnesh@sangamlonkar14.cf" `
+-Password $SecurePassword -MailNickname "lucky"
 #>
 # Connect to your Azure AD directory.
-#Connect-AzureAD
-
-# Login to your Azure subscription.
-#Connect-AzureRmAccount
+#Connect-AzureAD 
 
 # Create the service principal for Azure AD Domain Services.
-#New-AzurermADServicePrincipal -AppId “54e05464-a580-48eb-8e7b-a50da31cf07a”
 New-AzurermADServicePrincipal
 
 # Create the delegated administration group for AAD Domain Services.
-New-AzurermADGroup -DisplayName "Admingroup4" -MailNickName "AADDCAdministrators"
+New-AzurermADGroup -DisplayName "Admingroup" -MailNickName "AADDCAdministrators"
 
 # First, retrieve the object ID of the newly created 'AAD DC Administrators' group.
-$GroupObjectId = Get-AzurermADGroup -DisplayNameStartsWith 'Admingroup4' | Select-Object Id
+$GroupObjectId = Get-AzurermADGroup -DisplayNameStartsWith 'Admingroup' | Select-Object Id
 
 # Now, retrieve the object ID of the user you'd like to add to the group.
 $UserObjectId = Get-AzurermADUser -UserPrincipalName "$AaddsAdminUserUpn" | Select-Object Id
@@ -73,26 +70,45 @@ New-AzureRmResource -ResourceId "/subscriptions/$AzureSubscriptionId/resourceGro
     "SubnetId"="/subscriptions/$AzureSubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Network/virtualNetworks/$VnetName/subnets/DomainServices"} `
   -ApiVersion 2017-06-01 -Force -Verbose
 #>
-Write-Host "----- Deployinging Azuure AD DS Service -----" -ForegroundColor Green
+Write-Host "----- Deployed Azuure AD DS Service -----" -ForegroundColor Green
+Write-Host "----- Prapogate the user in Azuure AD DS Service take 30 Min-----" -ForegroundColor Green
+Start-Sleep 1800
 ########################################################################
-#                                                                      #
-#          Launching Windows VM                                        #
-#                                                                      #
-########################################################################
-Write-Host "----- Launching Windows VM -----" -ForegroundColor Green
 
-# Create a public IP address and specify a DNS name
-$winpip = New-AzureRmPublicIpAddress `
+$date = Get-Date -Format g
+Write-Host "Starting Deploying........  on $date" -ForegroundColor Green
+write-host "
+#################################################
+#           Launching Win VM                    #
+################################################# " -ForegroundColor Green
+
+########### VARIBLES USED ##########################
+#$ResourceGroupName = "ADDRG"
+#$location = "westus"
+$DomainName = "sangamlonkar14.cf"
+
+# Define a credential object to store the username and password for Azure Domain
+$secpasswd = ConvertTo-SecureString 'Lkjhg5fdsa@' -AsPlainText -Force
+$Credentials = New-Object System.Management.Automation.PSCredential("pradnesh@sangamlonkar14.cf",$secpasswd)
+
+# Define a credential object to store the username and password for the virtual machines
+$UserName='demouser'
+$Password='Password@123'| ConvertTo-SecureString -Force -AsPlainText
+$Credential=New-Object PSCredential($UserName,$Password)
+
+ 
+$Vnet=Get-AzureRmVirtualNetwork `
+  -Name "$VnetName" -ResourceGroupName "$ResourceGroupName"
+
+  $winpip = New-AzureRmPublicIpAddress `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
   -AllocationMethod Static `
   -IdleTimeoutInMinutes 4 `
   -Name "winpublicdns$(Get-Random)"
 
-#Create a network security group and a network security group rule
-# Create an inbound network security group rule for port 3389
-$nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig `
-  -Name myNetworkSecurityGroupRuleRDP `
+  $nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig `
+  -Name winNetworkSecurityGroupRuleRDP `
   -Protocol Tcp `
   -Direction Inbound `
   -Priority 1000 `
@@ -106,27 +122,20 @@ $nsgRuleRDP = New-AzureRmNetworkSecurityRuleConfig `
 $winnsg = New-AzureRmNetworkSecurityGroup `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
-  -Name myNetworkSecurityGroup `
+  -Name winNetworkSecurityGroup `
   -SecurityRules $nsgRuleRDP
 
-  #Create a network card for the virtual machine
-# Create a virtual network card and associate it with public IP address and NSG
-$winnic = New-AzureRmNetworkInterface `
+  $winnic = New-AzureRmNetworkInterface `
   -Name "winmyNic" `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
   -SubnetId $Vnet.Subnets[0].Id `
   -PublicIpAddressId $winpip.Id `
   -NetworkSecurityGroupId $winnsg.Id
-#Create a virtual machine
 
-# Define a credential object to store the username and password for the virtual machine
-$UserName='demouser'
-$Password='Password@123'| ConvertTo-SecureString -Force -AsPlainText
-$Credential=New-Object PSCredential($UserName,$Password)
 
 # Create the virtual machine configuration object
-$winVmName = "WinVirtualMachine"
+$winVmName = "WinVirtualMachinetest"
 $VmSize = "Standard_A1"
 $winVirtualMachine = New-AzureRmVMConfig `
   -VMName $winVmName `
@@ -146,91 +155,76 @@ $winVirtualMachine = Set-AzureRmVMSourceImage `
   -Version "latest" | `
   Add-AzureRmVMNetworkInterface -Id $winnic.Id
 
-# Create the virtual machine.
 New-AzureRmVM `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
   -VM $winVirtualMachine
 
-    Write-Host "----- Launched Windows VM Successfully!!-----" -ForegroundColor Green
-    Get-AzureRmVM -ResourceGroupName $RG | Where-Object {$_.Name -like 'WinVirtualMachine'} |
-    Add-JDAzureRMVMToDomain -DomainName sangamlonkar14.cf -Verbose
-    function Add-JDAzureRMVMToDomain {
-    
-    param(
-       [Parameter(Mandatory=$true)]
-       [string]$DomainName,
-       [Parameter(Mandatory=$false)]
-       [System.Management.Automation.PSCredential]$Credentials = (Get-Credential -Message 'Enter the domain join credentials'),
-       [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-       [Alias('VMName')]
-       [string]$Name,
-       [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-       [ValidateScript({Get-AzureRmResourceGroup -Name $_})]
-       [string]$ResourceGroupName
-    )
-       begin {
-           #Define domain join settings (username/domain/password)
-           $Settings = @{
-               Name = $DomainName
-               User = $Credentials.UserName
-               Restart = "true"
-               Options = 3
-           }
-           $ProtectedSettings =  @{
-                   Password = $Credentials.GetNetworkCredential().Password
-           }
-           Write-Verbose -Message "Domainname is: $DomainName"
-       }
-       process {
-           try {
-               $RG = Get-AzureRmResourceGroup -Name $ResourceGroupName
-               $JoinDomainHt = @{
-                   ResourceGroupName = $RG.ResourceGroupName
-                   ExtensionType = 'JsonADDomainExtension'
-                   Name = 'joindomain'
-                   Publisher = 'Microsoft.Compute'
-                   TypeHandlerVersion = '1.0'
-                   Settings = $Settings
-                   VMName = $Name
-                   ProtectedSettings = $ProtectedSettings
-                   Location = $RG.Location
-               }
-               Write-Verbose -Message "Joining $Name to $DomainName"
-               Set-AzureRMVMExtension @JoinDomainHt
-               Start-Sleep 360
-    
-             Set-AzureRmVMCustomScriptExtension -ResourceGroupName $RG `
-                   -VMName $Name -Name "myCustomScript" `
-                   -FileUri "https://raw.githubusercontent.com/sangaml/adds_win_Linux/master/userpermission.ps1" `
-                   -Run "userpermission.ps1" `
-                   -Location "west us"
-           } catch {
-               Write-Warning $_
-           }
-       }
-       end { }
-    }
-    
-    ########################################################################
-#                                                                      #
-#          Launching Linux VM                                          #
-#                                                                      #
-########################################################################
-Write-Host "----- Launching Linux VM -----" -ForegroundColor Green
+Write-Host "----- Launched Windows VM Successfully!!-----" -ForegroundColor Green
+Write-Host "----- Now adding VM to Azure Active directory domain Service -----" -ForegroundColor Green
 
-# Create variables to store the location and resource group names.
-$random = (New-Guid).ToString().Substring(0,8)
-# Create variables to store the storage account name and the storage account SKU information
-$StorageAccountName = "linuxstorageaccount$random"
+
+function Add-JDAzureRMVMToDomain {
+ 
+           $Settings = @{
+            Name = $DomainName
+            User = $Credentials.UserName
+            Restart = "true"
+            Options = 3
+                        }
+           $ProtectedSettings =  @{
+                Password = $Credentials.GetNetworkCredential().Password
+                                  }
+           
+        
+           $JoinDomainHt = @{
+                ResourceGroupName = $RG
+                ExtensionType = 'JsonADDomainExtension'
+                Name = 'joindomain'
+                Publisher = 'Microsoft.Compute'
+                TypeHandlerVersion = '1.0'
+                Settings = $Settings
+                VMName = $winVmName
+                ProtectedSettings = $ProtectedSettings
+                Location = $location
+                            }
+                        Set-AzureRMVMExtension @JoinDomainHt
+       
+       }
+ write-host "Getting Domainname is: $DomainName" -ForegroundColor Green
+ Start-Sleep 10
+ write-host "Joining $winVmName to $DomainName .................. " -ForegroundColor Green
+  
+ # Calling function to connect to domain  
+ Add-JDAzureRMVMToDomain
+ Start-Sleep 360
+ 
+ Write-Host "Please wait.... your Machine:$winVmName is configuring for login"
+ 
+ #  Providing access to user for remote login
+ Set-AzureRmVMCustomScriptExtension -ResourceGroupName $ResourceGroupName `
+               -VMName $winVmName -Name "myCustomScript" `
+               -FileUri "https://raw.githubusercontent.com/sangaml/adds_win_Linux/master/userpermission.ps1" `
+               -Run "userpermission.ps1" `
+               -Location $location
+
+Write-Host " $winVmName is now connected to $DomainName " -ForegroundColor Green
+   
+Write-Host "
+----- Added VM to Azure Active directory domain Service -----
+#################################################
+#           Launching Linux VM                  #
+################################################# " -ForegroundColor Green
+
+$random = (New-Guid).ToString().Substring(0,4)
+
+$StorageAccountName = "linuxstorage$random"
 $SkuName = "Standard_LRS"
 
 # Create variables to store the network security group and rules names.
-$nsgName = "LinuxNetworkSecurityGroup"
+$nsgName = "sshNetworkSecurityGroup"
 $nsgRuleSSHName = "NetworkSecurityGroupRuleSSH"
 
-# Create a storage account and then create a storage container for the Ubuntu Server 16.04 LTS image.
-# Create a new storage account
 $StorageAccount = New-AzureRMStorageAccount `
   -Location $location `
   -ResourceGroupName $ResourceGroupName `
@@ -241,46 +235,50 @@ Set-AzureRmCurrentStorageAccount `
   -StorageAccountName $storageAccountName `
   -ResourceGroupName $resourceGroupName
 
-# Create a public IP address and specify a DNS name
-$pip = New-AzureRmPublicIpAddress `
+
+$Vnet=Get-AzureRmVirtualNetwork `
+  -Name "$VnetName" -ResourceGroupName "$ResourceGroupName"
+
+  $linuxpip = New-AzureRmPublicIpAddress `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
   -AllocationMethod Static `
   -IdleTimeoutInMinutes 4 `
-  -Name "linuxpublicdns$(Get-Random)"
+  -Name "Linuxpublicdns$(Get-Random)"
 
-#Create a network security group and a network security group rule
-# Create an inbound network security group rule for port 22
-$nsgRuleSSH = New-AzureRmNetworkSecurityRuleConfig `
--Name $nsgRuleSSHName -Protocol Tcp `
--Direction Inbound -Priority 1000 -SourceAddressPrefix * `
--SourcePortRange * -DestinationAddressPrefix * `
--DestinationPortRange 22 -Access Allow
+  $nsgRulessh = New-AzureRmNetworkSecurityRuleConfig `
+  -Name "$nsgRuleSSHName" `
+  -Protocol Tcp `
+  -Direction Inbound `
+  -Priority 1000 `
+  -SourceAddressPrefix * `
+  -SourcePortRange * `
+  -DestinationAddressPrefix * `
+  -DestinationPortRange 22 `
+  -Access Allow
 
 # Create a network security group
-$nsg = New-AzureRmNetworkSecurityGroup `
--ResourceGroupName $ResourceGroupName `
--Location $location `
--Name $nsgName -SecurityRules $nsgRuleSSH
+$linuxnsg = New-AzureRmNetworkSecurityGroup `
+  -ResourceGroupName $ResourceGroupName `
+  -Location $location `
+  -Name $nsgName `
+  -SecurityRules $nsgRulessh
 
-# Create a virtual network card and associate it with public IP address and NSG
-$nic = New-AzureRmNetworkInterface `
-  -Name myNic `
+  $linuxnic = New-AzureRmNetworkInterface `
+  -Name "LinuxmyNic" `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
   -SubnetId $Vnet.Subnets[0].Id `
-  -PublicIpAddressId $pip.Id `
-  -NetworkSecurityGroupId $nsg.Id
-  Write-Host "----- Created NIC -----" -ForegroundColor Green
+  -PublicIpAddressId $linuxpip.Id `
+  -NetworkSecurityGroupId $linuxnsg.Id
 
-# Define a credential object.
-$UserName='demouser'
+  $UserName='demouser'
 $VMPassword = 'Password123!'
 $securePassword = ConvertTo-SecureString $VMPassword -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential ($UserName, $securePassword)
 
 # Create the virtual machine configuration object
-$VmName = "LinuxVirtualMachine"
+$VmName = "LinuxVirtualMachinetest"
 $VmSize = "Standard_D1"
 $VirtualMachine = New-AzureRmVMConfig `
   -VMName $VmName `
@@ -289,7 +287,7 @@ $VirtualMachine = New-AzureRmVMConfig `
 $VirtualMachine = Set-AzureRmVMOperatingSystem `
   -VM $VirtualMachine `
   -Linux `
-  -ComputerName "MainComputer" `
+  -ComputerName "linuxvm" `
   -Credential $cred
 
 $VirtualMachine = Set-AzureRmVMSourceImage `
@@ -311,7 +309,7 @@ $VirtualMachine = Set-AzureRmVMOSDisk `
   -Name $osDiskName `
   -VhdUri $OsDiskUri `
   -CreateOption FromImage | `
-  Add-AzureRmVMNetworkInterface -Id $nic.Id
+  Add-AzureRmVMNetworkInterface -Id $linuxnic.Id
 
 # Create the virtual machine.
 New-AzureRmVM `
@@ -320,12 +318,25 @@ New-AzureRmVM `
   -VM $VirtualMachine
 
 Write-Host "----- Launched Linux VM Successfully!!-----" -ForegroundColor Green
-Write-Host "----- Launched Linux VM Successfully!!-----" -ForegroundColor Green
 Write-Host "----- Adding Extenstion Now -----" -ForegroundColor Green
-$TheURI = "https://raw.githubusercontent.com/sangaml/adds_win_Linux/master/joinlinux.sh"
-$Settings = @{"fileUris" = @($TheURI); "commandToExecute" = "./joinlinux.sh"};
+$TheURI = "https://raw.githubusercontent.com/sangaml/adds_win_Linux/master/joinlinuxtoadds.sh"
+$Settings = @{"fileUris" = @($TheURI); "commandToExecute" = "./joinlinuxtoadds.sh"};
 #
 Set-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -Location $location -VMName $VmName `
 -Name "customScript" `
 -Publisher "Microsoft.Azure.Extensions" -Type "customScript" -TypeHandlerVersion "2.0" `
 -Settings $Settings
+
+Write-Host "----- Launched Linux VM Successfully!!-----" -ForegroundColor Green
+
+Write-Host "----- Adding VM into Azure AD DS -----" -ForegroundColor Green
+
+$TheURI = "https://raw.githubusercontent.com/sangaml/adds_win_Linux/master/joinlinuxtoadds.sh"
+$Settings = @{"fileUris" = @($TheURI); "commandToExecute" = "./joinlinuxtoadds.sh"};
+#
+Set-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -Location $location -VMName $VmName `
+-Name "customScript" `
+-Publisher "Microsoft.Azure.Extensions" -Type "customScript" -TypeHandlerVersion "2.0" `
+-Settings $Settings
+
+Write-Host "----- Added VM into Azure AD DS -----" -ForegroundColor Green
