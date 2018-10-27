@@ -137,9 +137,9 @@ Write-Host "----- Added VM to Azure Active directory domain Service -----" -Fore
 #           Launching Linux VM                  #
 #################################################
 Write-Host "----- Launching Linux VM  -----" -ForegroundColor Green
-$random = (New-Guid).ToString().Substring(0,8)
+$random = (New-Guid).ToString().Substring(0,4)
 
-$StorageAccountName = "teststorage$random"
+$StorageAccountName = "linuxstorage$random"
 $SkuName = "Standard_LRS"
 
 # Create variables to store the network security group and rules names.
