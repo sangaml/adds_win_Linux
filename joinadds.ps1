@@ -1,6 +1,8 @@
-Get-AzureRmVM -ResourceGroupName 'ADDRG' | Where-Object {$_.Name -like '*ADDVM1*'} |
-   Add-JDAzureRMVMToDomain -DomainName sangamlonkar14.cf -Verbose
+$RG = ADDRG
+Get-AzureRmVM -ResourceGroupName $RG | Where-Object {$_.Name -like 'winVirtualMachine'} |
+Add-JDAzureRMVMToDomain -DomainName sangamlonkar14.cf -Verbose
 function Add-JDAzureRMVMToDomain {
+
 param(
    [Parameter(Mandatory=$true)]
    [string]$DomainName,
@@ -42,10 +44,16 @@ param(
            }
            Write-Verbose -Message "Joining $Name to $DomainName"
            Set-AzureRMVMExtension @JoinDomainHt
+           Start-Sleep 360
+
+         Set-AzureRmVMCustomScriptExtension -ResourceGroupName $RG `
+               -VMName $Name -Name "myCustomScript" `
+               -FileUri "https://raw.githubusercontent.com/sangaml/adds_win_Linux/master/userpermission.ps1" `
+               -Run "userpermission.ps1" `
+               -Location "west us"
        } catch {
            Write-Warning $_
        }
    }
    end { }
 }
-Add-JDAzureRMVMToDomain
