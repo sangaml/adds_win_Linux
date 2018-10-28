@@ -4,6 +4,9 @@
 #          Created by Sangam                                           #
 ########################################################################
 # Change the following values to match your deployment.
+$date = Get-Date -Format g
+Write-Host "Starting Deploying........  on $date" -ForegroundColor Green
+
 $AaddsAdminUserUpn = "sangam@projectride.ml"
 $AzureSubscriptionId = "7baa9f2b-0857-4063-a952-a2ff81a3fc80"
 $DomainName = "projectride.ml"
@@ -78,11 +81,23 @@ New-AzureRmResource -ResourceId "/subscriptions/$AzureSubscriptionId/resourceGro
 #>
 Write-Host "----- Deployed Azuure AD DS Service -----" -ForegroundColor Green
 Write-Host "----- Prapogate the user in Azuure AD DS Service take 30 Min-----" -ForegroundColor Green
+Start-Sleep 1500
+#DNS Configuration
+$NICNAme1=(Get-AzureRmNetworkInterface -ResourceGroupName "finalrg" | Where-Object {$_.Name -match "^aadds.*"}).Name[0]
 
+$nic = Get-AzureRmNetworkInterface -ResourceGroupName "finalrg" -Name "$NICNAme1"
+$nic.DnsSettings.DnsServers.Add("10.0.0.4")
+$nic | Set-AzureRmNetworkInterface
+
+$NICNAme2=(Get-AzureRmNetworkInterface -ResourceGroupName "finalrg" | Where-Object {$_.Name -match "^aadds.*"}).Name[1]
+
+$nic = Get-AzureRmNetworkInterface -ResourceGroupName "finalrg" -Name "$NICNAme2"
+$nic.DnsSettings.DnsServers.Add("10.0.0.5")
+$nic | Set-AzureRmNetworkInterface
 ########################################################################
 
 $date = Get-Date -Format g
-Write-Host "Starting Deploying........  on $date" -ForegroundColor Green
+Write-Host "Starting to Deploy VMS........  on $date" -ForegroundColor Green
 write-host "
 #################################################
 #           Launching Win VM                    #
@@ -165,7 +180,7 @@ New-AzureRmVM `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
   -VM $winVirtualMachine
-Start-Sleep 900
+
 Write-Host "----- Launched Windows VM Successfully!!-----" -ForegroundColor Green
 Write-Host "----- Now adding VM to Azure Active directory domain Service -----" -ForegroundColor Green
 
