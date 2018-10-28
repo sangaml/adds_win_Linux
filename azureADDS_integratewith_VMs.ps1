@@ -4,18 +4,29 @@
 #          Created by Sangam                                           #
 ########################################################################
 # Change the following values to match your deployment.
-$AaddsAdminUserUpn = "pradnesh@sangamlonkar14.cf"
-$AzureSubscriptionId = "8c879d4b-1e31-438b-8f74-41093d5c4b83"
-$ManagedDomainName = "sangamlonkar14.cf"
+$AaddsAdminUserUpn = "sangam@projectride.ml"
+$AzureSubscriptionId = "7baa9f2b-0857-4063-a952-a2ff81a3fc80"
+$DomainName = "projectride.ml"
 $ResourceGroupName = "finalrg"
 $VnetName = "DomainServicesVNet"
 $location = "westus"
 
+# Login to your Azure subscription.
+#Connect-AzureRmAccount
+# #Create the resource group.
+New-AzureRmResourceGroup `
+  -Name $ResourceGroupName `
+  -Location $location
 ###Add user
 $SecurePassword=ConvertTo-SecureString 'Lkjhg5fdsa@' –asplaintext –force
 
-new-AzureRmADUser -DisplayName "pradnesh" -UserPrincipalName "pradnesh@sangamlonkar14.cf" `
+new-AzureRmADUser -DisplayName "sangam" -UserPrincipalName "$AaddsAdminUserUpn" `
 -Password $SecurePassword -MailNickname "lucky"
+
+# Assigning IAM role to User
+
+New-AzureRmRoleAssignment -SignInName "$AaddsAdminUserUpn" `
+-RoleDefinitionName "Virtual Machine User Login" -ResourceGroupName "$ResourceGroupName"
 #>
 # Connect to your Azure AD directory.
 #Connect-AzureAD 
@@ -37,11 +48,6 @@ Add-AzurermADGroupMember -MemberObjectId $UserObjectId.Id -TargetGroupObjectId $
 
 # Register the resource provider for Azure AD Domain Services with Resource Manager.
 Register-AzureRmResourceProvider -ProviderNamespace Microsoft.AAD
-
-# #Create the resource group.
-New-AzureRmResourceGroup `
-  -Name $ResourceGroupName `
-  -Location $location
 #
 # Create the dedicated subnet for AAD Domain Services.
 $AaddsSubnet = New-AzureRmVirtualNetworkSubnetConfig `
@@ -64,15 +70,15 @@ $Vnet=New-AzureRmVirtualNetwork `
   Write-Host "----- Deployinging Azuure AD DS Service take Around 60 Min -----" -ForegroundColor Green
 
 # Enable Azure AD Domain Services for the directory.
-New-AzureRmResource -ResourceId "/subscriptions/$AzureSubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.AAD/DomainServices/$ManagedDomainName" `
+New-AzureRmResource -ResourceId "/subscriptions/$AzureSubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.AAD/DomainServices/$DomainName" `
   -Location $location `
-  -Properties @{"DomainName"=$ManagedDomainName; `
+  -Properties @{"DomainName"=$DomainName; `
     "SubnetId"="/subscriptions/$AzureSubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Network/virtualNetworks/$VnetName/subnets/DomainServices"} `
   -ApiVersion 2017-06-01 -Force -Verbose
 #>
 Write-Host "----- Deployed Azuure AD DS Service -----" -ForegroundColor Green
 Write-Host "----- Prapogate the user in Azuure AD DS Service take 30 Min-----" -ForegroundColor Green
-Start-Sleep 1800
+
 ########################################################################
 
 $date = Get-Date -Format g
@@ -85,11 +91,11 @@ write-host "
 ########### VARIBLES USED ##########################
 #$ResourceGroupName = "ADDRG"
 #$location = "westus"
-$DomainName = "sangamlonkar14.cf"
+#$DomainName = "$DomainName"
 
 # Define a credential object to store the username and password for Azure Domain
 $secpasswd = ConvertTo-SecureString 'Lkjhg5fdsa@' -AsPlainText -Force
-$Credentials = New-Object System.Management.Automation.PSCredential("pradnesh@sangamlonkar14.cf",$secpasswd)
+$Credentials = New-Object System.Management.Automation.PSCredential("$AaddsAdminUserUpn",$secpasswd)
 
 # Define a credential object to store the username and password for the virtual machines
 $UserName='demouser'
@@ -159,7 +165,7 @@ New-AzureRmVM `
   -ResourceGroupName $ResourceGroupName `
   -Location $location `
   -VM $winVirtualMachine
-
+Start-Sleep 900
 Write-Host "----- Launched Windows VM Successfully!!-----" -ForegroundColor Green
 Write-Host "----- Now adding VM to Azure Active directory domain Service -----" -ForegroundColor Green
 
