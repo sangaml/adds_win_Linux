@@ -16,7 +16,7 @@ We have Two Main scripts
   After successful installation we are able to login into VMs by using Azure Active Directory Domain Service users credential.
   
 # 2.azureADDS_integratewith_VMs.ps1 :
-  This powershell script we are using, when we want to creating Azure Active Directory Domain Service and add VMs into that Domain.
+  This powershell script we are using, when we want to create Azure Active Directory Domain Service and add VMs into that Domain.
   
   During deployment script will create and configure (ADDS), with 2 VMs (Windows and Linux) and configure Active Directory Domain      Service (users) into that VMs.
   After successful installation we are able to login into VMs by using Azure Active Directory Domain Service users credential.
